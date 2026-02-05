@@ -1,16 +1,20 @@
-const { SlashCommandBuilder } = require("discord.js");
+module.exports = (client) => {
+  client.on("messageCreate", async (message) => {
+    if (message.author.bot) return;
 
-module.exports = {
-  data: new SlashCommandBuilder()
-    .setName("setchannel")
-    .setDescription("Botが反応するチャンネルをこのチャンネルに設定します"),
+    // コマンド
+    if (message.content === "!setchannel") {
+      // 管理者のみ
+      if (!message.member.permissions.has("Administrator")) {
+        return message.reply("管理者しか使えません");
+      }
 
-  async execute(interaction, state) {
-    state.allowedChannelId = interaction.channelId;
+      const channel = message.channel;
 
-    await interaction.reply({
-      content: "✅ このチャンネルをBotの使用チャンネルに設定しました",
-      ephemeral: true
-    });
-  }
+      // 保存（超簡易：メモリ）
+      client.setChannelId = channel.id;
+
+      message.reply(`✅ このチャンネルをセットしました\n<#${channel.id}>`);
+    }
+  });
 };
