@@ -29,3 +29,20 @@ client.on("messageCreate", message => {
 });
 
 client.login(process.env.TOKEN);
+client.on("messageCreate", message => {
+  if (message.author.bot) return;
+
+  if (message.content === "こんにちは") {
+    message.reply("こんにちは！");
+  }
+
+  if (message.content === "!jinro") {
+    message.channel.send(
+      "🐺 人狼ゲームを開始します\n参加する人は `!join` と送ってください"
+    );
+  }
+
+  if (message.content === "!join") {
+    message.channel.send(`${message.author.username} が参加しました`);
+  }
+});
