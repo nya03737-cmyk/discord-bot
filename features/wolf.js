@@ -12,6 +12,32 @@ module.exports = (client) => {
   client.on("messageCreate", async message => {
     if (message.author.bot) return;
 
+    // ===== 疑い値ランキング =====
+if (message.content === "!ranking") {
+  const entries = Object.entries(userStats);
+
+  if (entries.length === 0) {
+    return message.reply("まだ疑い値データがありません。");
+  }
+
+  const sorted = entries
+    .sort((a, b) => b[1].suspicion - a[1].suspicion)
+    .slice(0, 5);
+
+  let text = "🏆 **疑い値ランキング TOP5**\n";
+
+  for (let i = 0; i < sorted.length; i++) {
+    const [userId, data] = sorted[i];
+    const member = message.guild.members.cache.get(userId);
+    if (!member) continue;
+
+    text += `${i + 1}. ${member.user.username} `
+      + `（疑い値: ${data.suspicion.toFixed(2)} / 発言: ${data.count}）\n`;
+  }
+
+  return message.reply(text);
+}
+    
     globalTurn++;
     const userId = message.author.id;
 
