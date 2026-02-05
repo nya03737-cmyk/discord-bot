@@ -10,6 +10,7 @@ module.exports = (client) => {
   });
 
   client.on("messageCreate", async message => {
+
     // ===== ① Bot無視 =====
     if (message.author.bot) return;
 
@@ -21,21 +22,12 @@ module.exports = (client) => {
       return;
     }
 
-    // ===== ③ WOLFが反応する発言フィルター =====
-    // ※ 雑談・短文・意味のない発言は無視
-    if (
-      message.content.length < 6 &&
-      !message.content.startsWith("!")
-    ) {
-      return;
-    }
-
-    // ===== 疑い値ランキング =====
+    // ===== ③ ランキングコマンド（最優先） =====
     if (message.content === "!ranking") {
       const entries = Object.entries(userStats);
 
       if (entries.length === 0) {
-        return message.reply("まだ疑い値データがありません。");
+        return message.reply("まだ誰も精査対象にすらなってないけど？");
       }
 
       const sorted = entries
@@ -50,11 +42,16 @@ module.exports = (client) => {
         if (!member) continue;
 
         text += `${i + 1}. ${member.user.username} `
-          + `（疑い値: ${data.suspicion.toFixed(2)} / 発言: ${data.count}）\n`;
+          + `（疑い値: ${data.suspicion.toFixed(2)} / 発言数: ${data.count}）\n`;
       }
 
       return message.reply(text);
     }
+
+    // ===== ④ 発言フィルター（緩め） =====
+    // ・短文もOK
+    // ・スタンプ/意味不明1文字は無視
+    if (message.content.length <= 1) return;
 
     // ===== 人狼AI 本体 =====
     globalTurn++;
@@ -72,81 +69,95 @@ module.exports = (client) => {
     user.count++;
     user.suspicion += 0.04;
 
-    if (!user.locked && Math.random() < 0.05) {
+    // ロックオン
+    if (!user.locked && Math.random() < 0.06) {
       user.locked = true;
-      user.suspicion += 0.3;
+      user.suspicion += 0.35;
     }
 
+    // ===== 反応確率 =====
     const reactChance = Math.min(
-      0.12 + user.suspicion * 0.25 + globalTurn * 0.002,
-      0.65
+      0.2 + user.suspicion * 0.3 + globalTurn * 0.002,
+      0.75
     );
 
     if (Math.random() > reactChance) return;
 
+    // 人間っぽい遅延
     await new Promise(r =>
-      setTimeout(r, 1000 + Math.random() * 2500)
+      setTimeout(r, 800 + Math.random() * 2200)
     );
 
+    // ===== セリフ群（煽り強化） =====
+
     const lightReplies = [
-      "まだ判断材料足りないかな。",
-      "今は保留で見てる。",
-      "その発言自体は普通。",
-      "一旦メモだけ。",
-      "焦る時間帯じゃない。",
-      "今はフラット。",
-      "そこまで違和感はない。",
-      "今日触る位置ではなさそう。",
+      "今の発言、特に要素ないね。",
+      "ふーん、それで？",
+      "まあ今は触らなくていいか。",
+      "その発言、別に色つかない。",
+      "様子見ムーブって感じ。",
+      "無難すぎて逆に何も見えない。",
+      "今は放置枠かな。",
+      "情報ゼロではないけど薄い。",
     ];
 
     const suspiciousReplies = [
-      "発言数の割に中身薄くない？",
-      "その視点、どこから来た？",
-      "今その話題出す意味ある？",
-      "ちょっと動き早い気がする。",
-      "発言稼ぎっぽく見える。",
-      "視点が浮いてるんだよね。",
-      "庇いに見えるのが気になる。",
-      "今のは色落ちしない発言。",
-      "一貫性なくない？",
-      "その意見、昨日とズレてる。",
+      "発言数の割に中身なさすぎ。",
+      "今それ言う意味、説明できる？",
+      "その視点どっから湧いた？",
+      "発言稼ぎにしか見えない。",
+      "ちょっと動き不自然じゃない？",
+      "周り見てから喋ってる感ある。",
+      "その庇い方、雑すぎ。",
+      "論点ずらしてない？",
+      "今の発言、村利ではない。",
+      "一貫性がどっか行った。",
     ];
 
     const heavyReplies = [
-      "正直かなり黒寄り。",
-      "ここロックして精査したい。",
-      "今の発言で吊り位置に上がった。",
-      "その動き、人外のそれ。",
-      "今日落としてもいいと思ってる。",
-      "擁護の仕方が露骨すぎる。",
-      "視点漏れっぽい。",
-      "もう白は見てない。",
-      "村利に見えない。",
-      "今一番怪しい位置。",
+      "はい黒い。",
+      "もう白では見てない。",
+      "ここロックするわ。",
+      "今日の吊り候補筆頭。",
+      "人外ムーブそのもの。",
+      "擁護が露骨すぎて逆効果。",
+      "視点漏れにしか見えん。",
+      "その動き、村ならやらん。",
+      "残したくない位置。",
+      "ここ最終日残ると負ける。",
+      "正直、かなり人外寄り。",
+      "これで白取るのは無理。",
     ];
 
     const controlReplies = [
+      "進行的には今触る場所じゃない。",
       "今日は情報整理優先で。",
-      "決め打つにはまだ早い。",
-      "一旦グレー詰めたい。",
-      "今日は無理に動かなくていい。",
-      "進行的には保留が安定。",
+      "無理に決め打つ盤面じゃない。",
+      "今日はグレー詰めでいい。",
+      "まだ決断する時間じゃない。",
     ];
 
     const randomChaos = [
-      "逆にここ白なら村きつそう。",
-      "ここ狼なら強い位置。",
-      "噛まれなさそうな発言だね。",
-      "最終日まで残りそう。",
-      "SGにされそうな動き。",
+      "ここ狼なら相当やっかい。",
+      "逆に白ならSG位置だね。",
+      "噛まれなさそうな発言だな。",
+      "最終日まで生き残りそう。",
+      "殴られ役になりそう。",
+      "ここ放置すると荒れる。",
     ];
 
+    // ===== 疑い値で分岐 =====
     let pool = lightReplies;
-    if (user.suspicion > 1.1) pool = heavyReplies;
-    else if (user.suspicion > 0.7) pool = suspiciousReplies;
 
-    if (Math.random() < 0.15) pool = controlReplies;
-    if (Math.random() < 0.1) pool = randomChaos;
+    if (user.suspicion > 1.2) {
+      pool = heavyReplies;
+    } else if (user.suspicion > 0.75) {
+      pool = suspiciousReplies;
+    }
+
+    // 進行・カオス混入
+    if (Math.random() < 0.12) pool = controlReplies;
+    if (Math.random() < 0.12) pool = randomChaos;
 
     message.reply(
       pool[Math.floor(Math.random() * pool.length)]
