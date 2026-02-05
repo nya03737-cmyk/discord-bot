@@ -11,7 +11,10 @@ module.exports = (client) => {
 
   client.on("messageCreate", async message => {
     if (message.author.bot) return;
-
+    
+if (client.allowedChannelId && message.channel.id !== client.allowedChannelId) {
+  return;
+}
     // ===== 疑い値ランキング =====
 if (message.content === "!ranking") {
   const entries = Object.entries(userStats);
