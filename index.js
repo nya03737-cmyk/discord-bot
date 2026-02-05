@@ -1,5 +1,4 @@
-const { Client, GatewayIntentBits, Collection } = require("discord.js");
-const fs = require("fs");
+const { Client, GatewayIntentBits } = require("discord.js");
 
 const client = new Client({
   intents: [
@@ -9,47 +8,38 @@ const client = new Client({
   ],
 });
 
-// コマンド管理
-client.commands = new Collection();
+// ==============================
+// セットチャンネル（共有状態）
+// ==============================
+client.allowedChannelId = null;
 
-// 状態管理（セットチャンネルなど）
-const state = {
-  allowedChannelId: null,
-};
+// ==============================
+// 起動
+// ==============================
+client.once("ready", () => {
+  console.log("🐺 WOLF Bot 起動");
+});
 
-// commands 読み込み
-const commandFiles = fs
-  .readdirSync("./commands")
-  .filter(file => file.endsWith(".js"));
+// ==============================
+// セットチャンネルコマンド
+// ==============================
+client.on("messageCreate", async (message) => {
+  if (message.author.bot) return;
 
-for (const file of commandFiles) {
-  const command = require(`./commands/${file}`);
-  client.commands.set(command.data.name, command);
-}
+  if (message.content === "!setchannel") {
+    if (!message.member.permissions.has("Administrator")) {
+      return message.reply("❌ 管理者のみ使用できます");
+    }
 
-// wolf機能
-require("./features/wolf")(client, state);
-
-// スラッシュコマンド処理
-client.on("interactionCreate", async interaction => {
-  if (!interaction.isChatInputCommand()) return;
-
-  const command = client.commands.get(interaction.commandName);
-  if (!command) return;
-
-  try {
-    await command.execute(interaction, state);
-  } catch (error) {
-    console.error(error);
-    await interaction.reply({
-      content: "❌ コマンド実行中にエラーが発生しました",
-      ephemeral: true,
-    });
+    client.allowedChannelId = message.channel.id;
+    return message.reply("✅ このチャンネルをセットしました");
   }
 });
 
-client.once("ready", () => {
-  console.log("🤖 Bot起動完了");
-});
+// ==============================
+// WOLF（変更なし）
+// ==============================
+require("./features/wolf")(client);
 
+// ==============================
 client.login(process.env.TOKEN);
