@@ -29,13 +29,13 @@ client.on("messageCreate", async (message) => {
   // ===== セット =====
   if (message.content === "!setchannel") {
     client.allowedChannelId = message.channel.id;
-    return message.reply("✅ このチャンネルをWOLFの活動場所に設定した");
+    return message.reply("✅ さあ！行くぞ！");
   }
 
   // ===== 解除 =====
   if (message.content === "!unsetchannel") {
     client.allowedChannelId = null;
-    return message.reply("🔓 セットチャンネルを解除した");
+    return message.reply("🔓 もう喋んなってこと？");
   }
 });
 
