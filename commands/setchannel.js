@@ -1,21 +1,16 @@
-let allowedChannelId = null;
+const { SlashCommandBuilder } = require("discord.js");
 
-module.exports = (client) => {
-  client.on("messageCreate", async (message) => {
-    if (message.author.bot) return;
+module.exports = {
+  data: new SlashCommandBuilder()
+    .setName("setchannel")
+    .setDescription("Botが反応するチャンネルをこのチャンネルに設定します"),
 
-    // セットチャンネルコマンド
-    if (message.content === "!setchannel") {
-      allowedChannelId = message.channel.id;
-      return message.reply("✅ このチャンネルをBotの使用チャンネルに設定しました");
-    }
+  async execute(interaction, state) {
+    state.allowedChannelId = interaction.channelId;
 
-    // チャンネル未設定なら何もしない
-    if (!allowedChannelId) return;
-
-    // 指定チャンネル以外では無視
-    if (message.channel.id !== allowedChannelId) return;
-
-    // ↓↓↓ ここから下に「喋る処理」を書く ↓↓↓
-  });
+    await interaction.reply({
+      content: "✅ このチャンネルをBotの使用チャンネルに設定しました",
+      ephemeral: true
+    });
+  }
 };
