@@ -10,41 +10,56 @@ module.exports = (client) => {
   });
 
   client.on("messageCreate", async message => {
+    // ===== ① Bot無視 =====
     if (message.author.bot) return;
-    
-if (client.allowedChannelId && message.channel.id !== client.allowedChannelId) {
-  return;
-}
+
+    // ===== ② セットチャンネル制限 =====
+    if (
+      client.allowedChannelId &&
+      message.channel.id !== client.allowedChannelId
+    ) {
+      return;
+    }
+
+    // ===== ③ WOLFが反応する発言フィルター =====
+    // ※ 雑談・短文・意味のない発言は無視
+    if (
+      message.content.length < 6 &&
+      !message.content.startsWith("!")
+    ) {
+      return;
+    }
+
     // ===== 疑い値ランキング =====
-if (message.content === "!ranking") {
-  const entries = Object.entries(userStats);
+    if (message.content === "!ranking") {
+      const entries = Object.entries(userStats);
 
-  if (entries.length === 0) {
-    return message.reply("まだ疑い値データがありません。");
-  }
+      if (entries.length === 0) {
+        return message.reply("まだ疑い値データがありません。");
+      }
 
-  const sorted = entries
-    .sort((a, b) => b[1].suspicion - a[1].suspicion)
-    .slice(0, 5);
+      const sorted = entries
+        .sort((a, b) => b[1].suspicion - a[1].suspicion)
+        .slice(0, 5);
 
-  let text = "🏆 **疑い値ランキング TOP5**\n";
+      let text = "🏆 **疑い値ランキング TOP5**\n";
 
-  for (let i = 0; i < sorted.length; i++) {
-    const [userId, data] = sorted[i];
-    const member = message.guild.members.cache.get(userId);
-    if (!member) continue;
+      for (let i = 0; i < sorted.length; i++) {
+        const [userId, data] = sorted[i];
+        const member = message.guild.members.cache.get(userId);
+        if (!member) continue;
 
-    text += `${i + 1}. ${member.user.username} `
-      + `（疑い値: ${data.suspicion.toFixed(2)} / 発言: ${data.count}）\n`;
-  }
+        text += `${i + 1}. ${member.user.username} `
+          + `（疑い値: ${data.suspicion.toFixed(2)} / 発言: ${data.count}）\n`;
+      }
 
-  return message.reply(text);
-}
-    
+      return message.reply(text);
+    }
+
+    // ===== 人狼AI 本体 =====
     globalTurn++;
     const userId = message.author.id;
 
-    // 初期化
     if (!userStats[userId]) {
       userStats[userId] = {
         count: 0,
@@ -66,6 +81,7 @@ if (message.content === "!ranking") {
       0.12 + user.suspicion * 0.25 + globalTurn * 0.002,
       0.65
     );
+
     if (Math.random() > reactChance) return;
 
     await new Promise(r =>
@@ -132,6 +148,8 @@ if (message.content === "!ranking") {
     if (Math.random() < 0.15) pool = controlReplies;
     if (Math.random() < 0.1) pool = randomChaos;
 
-    message.reply(pool[Math.floor(Math.random() * pool.length)]);
+    message.reply(
+      pool[Math.floor(Math.random() * pool.length)]
+    );
   });
 };
