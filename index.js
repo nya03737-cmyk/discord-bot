@@ -21,23 +21,26 @@ client.once("ready", () => {
 });
 
 // ==============================
-// セットチャンネルコマンド
+// セット / 解除 コマンド（誰でもOK）
 // ==============================
 client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
 
+  // ===== セット =====
   if (message.content === "!setchannel") {
-    if (!message.member.permissions.has("Administrator")) {
-      return message.reply("❌ 管理者のみ使用できます");
-    }
-
     client.allowedChannelId = message.channel.id;
-    return message.reply("✅ このチャンネルをセットしました");
+    return message.reply("✅ このチャンネルをWOLFの活動場所に設定した");
+  }
+
+  // ===== 解除 =====
+  if (message.content === "!unsetchannel") {
+    client.allowedChannelId = null;
+    return message.reply("🔓 セットチャンネルを解除した");
   }
 });
 
 // ==============================
-// WOLF（変更なし）
+// WOLF（機能本体）
 // ==============================
 require("./features/wolf")(client);
 
