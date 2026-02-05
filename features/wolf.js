@@ -15,22 +15,16 @@ module.exports = (client) => {
     // ===== Bot無視 =====
     if (message.author.bot) return;
 
-    // ===== 指定チャンネル以外完全無視 =====
+    // ===== セットチャンネル以外完全無視 =====
     if (!client.allowedChannelId) return;
     if (message.channel.id !== client.allowedChannelId) return;
 
     const content = message.content;
 
-    // ===== ブチ切れ（確率無視）=====
-    if (RAGE_WORDS.some(w => content.includes(w))) {
-      return message.reply(
-        "……は？その一言で盤面進むと思ってるなら相当ヤバいけど。"
-      );
-    }
-
-    // ===== 疑い値ランキング =====
+    // ===== 疑い値ランキング（最優先・唯一のコマンド）=====
     if (content === "!ranking") {
       const entries = Object.entries(userStats);
+
       if (entries.length === 0) {
         return message.reply("まだ誰も疑われてないとか、平和すぎて逆に不安。");
       }
@@ -47,6 +41,16 @@ module.exports = (client) => {
       });
 
       return message.reply(text);
+    }
+
+    // ===== その他コマンドは完全無視 =====
+    if (content.startsWith("!")) return;
+
+    // ===== ブチ切れ（確率無視）=====
+    if (RAGE_WORDS.some(w => content.includes(w))) {
+      return message.reply(
+        "……は？その一言で盤面進むと思ってるなら相当ヤバいけど。"
+      );
     }
 
     // ===== 人狼AI本体 =====
@@ -80,7 +84,7 @@ module.exports = (client) => {
 
     await new Promise(r => setTimeout(r, 700 + Math.random() * 2000));
 
-    // ===== セリフ大量 =====
+    // ===== セリフ群 =====
     const light = [
       "その発言自体は別に問題ない。",
       "今のところは様子見。",
@@ -146,7 +150,6 @@ module.exports = (client) => {
     let pool = light;
     if (user.suspicion > 1.3) pool = heavy;
     else if (user.suspicion > 0.8) pool = suspicious;
-
     if (Math.random() < 0.2) pool = chaos;
 
     message.reply(pool[Math.floor(Math.random() * pool.length)]);
