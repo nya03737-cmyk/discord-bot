@@ -20,27 +20,44 @@ client.on("messageCreate", message => {
     message.reply("こんにちは！");
   }
 
-  // 人狼ジャッジメント風
-  if (/怪しい|黒い|人狼/.test(message.content)) {
-    const randomLines = [
-      "そこ突っ込むの、ちょっと不自然じゃない？",
-      "今の発言、後でログ見返したいですね。",
-      "その視点、村っぽくはないかな。",
-      "情報出さないのは人外要素ですよ？",
-    ];
-    message.reply(
-      randomLines[Math.floor(Math.random() * randomLines.length)]
-    );
-  }
+  // 人狼ジャッジメント風・完全ランダム反応
+const autoReplies = [
+  "今の発言、ちょっと雑じゃない？",
+  "その視点、どこから出てきたの？",
+  "無難すぎて逆に怪しい。",
+  "今のタイミングでそれ言う？",
+  "情報落としてないよね。",
+  "それ、村利になってる？",
+  "発言数稼いでるだけに見える。",
+  "その動き、前世で見た。",
+  "論点ずらしてない？",
+  "その意見、誰かに乗っかってない？",
+  "庇い方が不自然。",
+  "慎重すぎるのも怪しいけどね。",
+  "今の発言、後で検証対象ね。",
+  "視点が一人だけズレてる気がする。",
+  "今ログ見返したら矛盾ありそう。",
+  "発言の割に中身薄くない？",
+  "それ言うなら根拠欲しい。",
+  "そのムーブ、かなり人外寄り。",
+  "今のは黒要素拾える。",
+  "逆に今それ言わない方が良くない？",
+  "その動き、噛まれたくない人外っぽい。",
+  "ちょっと警戒した方が良さそう。",
+  "今のは吊り位置に上がる発言だね。",
+  "その意見、昨日と違わない？",
+  "様子見しすぎじゃない？",
+  "今のは村アピに見える。",
+  "その発言、後でログ残そう。",
+  "今のムーブ、露骨すぎる。",
+  "そこ突っ込むの、ちょっと不自然。",
+  "一旦落ち着いて整理しよう。",
+];
 
-  // ゲーム開始
-  if (message.content === "!jinro") {
-    message.channel.send("🐺 人狼ゲームを開始します\n参加する人は `!join`");
-  }
-
-  if (message.content === "!join") {
-    message.channel.send(`${message.author.username} が参加しました`);
-  }
-});
-
-client.login(process.env.TOKEN);
+// bot以外＆一定確率で反応
+if (!message.author.bot && Math.random() < 0.25) {
+  message.reply(
+    autoReplies[Math.floor(Math.random() * autoReplies.length)]
+  );
+}
+ client.login(process.env.TOKEN);
