@@ -1,41 +1,81 @@
 // features/wolf.js
 module.exports = (client) => {
 
-  // ===== 人狼AI 状態管理 =====
   const userStats = {};
   let globalTurn = 0;
 
+  // ===== ブチ切れワード（含まれたら即発動）=====
+  const rageWords = [
+    "草","w","www","わろ",
+    "雑魚","黙れ","負け",
+    "はいはい","もういい",
+    "意味ない","どうでもいい",
+    "つまらん","知らん","適当"
+  ];
+
   client.once("ready", () => {
-    console.log("🐺 人狼ジャッジメント風Bot 起動！");
+    console.log("🐺 WOLF 起動完了");
   });
 
   client.on("messageCreate", async message => {
 
-    // ===== ① Bot無視 =====
+    // ===== Bot無視 =====
     if (message.author.bot) return;
 
-    // ===== ② セットチャンネル制限 =====
+    // ===== セットチャンネル制限 =====
     if (
       client.allowedChannelId &&
       message.channel.id !== client.allowedChannelId
-    ) {
-      return;
+    ) return;
+
+    const content = message.content.toLowerCase();
+    const userId = message.author.id;
+
+    // ===== 初期化 =====
+    if (!userStats[userId]) {
+      userStats[userId] = {
+        count: 0,
+        suspicion: Math.random() * 0.4,
+        locked: false,
+      };
     }
 
-    // ===== ③ 一文字・スパム専用リアクション =====
-    if (message.content.length <= 1) {
-      if (Math.random() < 0.35) {
+    // ===== 特定ワードでブチ切れ =====
+    if (rageWords.some(w => content.includes(w))) {
+
+      const rageReplies = [
+        "は？今の発言なに？",
+        "草で逃げるの一番嫌い。",
+        "議論する気ないなら黙って。",
+        "その一言で一気に黒。",
+        "はいはいで済む盤面じゃない。",
+        "雑音入れないで。",
+        "その態度、人外要素。",
+        "今の発言、最悪。",
+        "感情吊りされたいの？",
+        "思考落とせないの透けてる。",
+        "そのワード出る時点で村じゃない。",
+      ];
+
+      userStats[userId].suspicion += 0.7;
+      userStats[userId].locked = true;
+
+      return message.reply(
+        rageReplies[Math.floor(Math.random() * rageReplies.length)]
+      );
+    }
+
+    // ===== 一文字スパム専用 =====
+    if (message.content.length === 1) {
+      if (Math.random() < 0.4) {
         const spamReplies = [
-          "それ発言って呼んでいい？",
-          "一文字で逃げるのやめよ。",
-          "はいはい、ノーカウント。",
-          "それで色落ちすると思ってる？",
-          "喋る気ないなら黙ってて。",
-          "議論する気ある？",
-          "その一文字に何の意味が？",
-          "雑音入れないで。",
-          "村利にならない発言。",
-          "発言稼ぎ雑すぎ。",
+          "一文字で何が伝わるの？",
+          "発言する気ある？",
+          "はいノーカウント。",
+          "それで参加してるつもり？",
+          "雑すぎ。",
+          "色落ちゼロ。",
+          "発言稼ぎにもなってない。",
         ];
         return message.reply(
           spamReplies[Math.floor(Math.random() * spamReplies.length)]
@@ -46,52 +86,34 @@ module.exports = (client) => {
 
     // ===== 疑い値ランキング =====
     if (message.content === "!ranking") {
-      const entries = Object.entries(userStats);
+      const sorted = Object.entries(userStats)
+        .sort((a,b)=>b[1].suspicion-a[1].suspicion)
+        .slice(0,5);
 
-      if (entries.length === 0) {
-        return message.reply("まだ疑い値データがありません。");
+      if (!sorted.length) {
+        return message.reply("まだ誰も精査対象じゃない。");
       }
 
-      const sorted = entries
-        .sort((a, b) => b[1].suspicion - a[1].suspicion)
-        .slice(0, 5);
-
-      let text = "🏆 **疑い値ランキング TOP5**\n";
-
-      for (let i = 0; i < sorted.length; i++) {
-        const [userId, data] = sorted[i];
-        const member = message.guild.members.cache.get(userId);
-        if (!member) continue;
-
-        text += `${i + 1}. ${member.user.username} `
-          + `（疑い値: ${data.suspicion.toFixed(2)} / 発言: ${data.count}）\n`;
-      }
+      let text = "🏆 疑い値ランキング\n";
+      sorted.forEach(([id,d],i)=>{
+        const m = message.guild.members.cache.get(id);
+        if (m) text += `${i+1}. ${m.user.username}（${d.suspicion.toFixed(2)}）\n`;
+      });
 
       return message.reply(text);
     }
 
-    // ===== 人狼AI 本体 =====
+    // ===== 人狼AI本体 =====
     globalTurn++;
-    const userId = message.author.id;
-
-    if (!userStats[userId]) {
-      userStats[userId] = {
-        count: 0,
-        suspicion: Math.random() * 0.5,
-        locked: false,
-      };
-    }
-
     const user = userStats[userId];
     user.count++;
-    user.suspicion += 0.05;
+    user.suspicion += 0.04;
 
     if (!user.locked && Math.random() < 0.06) {
       user.locked = true;
-      user.suspicion += 0.35;
+      user.suspicion += 0.3;
     }
 
-    // ===== 反応率（かなり高め）=====
     const reactChance = Math.min(
       0.35 + user.suspicion * 0.35 + globalTurn * 0.003,
       0.85
@@ -99,80 +121,66 @@ module.exports = (client) => {
     if (Math.random() > reactChance) return;
 
     await new Promise(r =>
-      setTimeout(r, 800 + Math.random() * 2000)
+      setTimeout(r, 700 + Math.random() * 2000)
     );
 
-    // ===== セリフ群 =====
-
-    const lightReplies = [
-      "その発言自体は普通。",
-      "今のところは白寄り。",
-      "判断材料としては弱い。",
-      "まだ触る位置じゃない。",
-      "今はフラットで見てる。",
+    // ===== セリフ（増量版）=====
+    const light = [
+      "今のは普通。",
       "特に違和感なし。",
-      "今の発言は減点なし。",
+      "今は触らなくていい。",
+      "判断材料として弱い。",
+      "一旦保留。",
+      "まだ見極め段階。",
+      "今のは減点なし。",
+      "村っぽくはある。",
       "様子見でいいかな。",
-      "可もなく不可もなく。",
-      "今のは村っぽい動き。",
+      "情報としては薄い。",
     ];
 
-    const suspiciousReplies = [
-      "発言数の割に中身薄くない？",
-      "その視点どこから来た？",
+    const suspicious = [
+      "発言数の割に中身ない。",
+      "その視点どこから？",
       "話題の出し方が不自然。",
-      "ちょっと発言稼ぎ臭い。",
-      "今そこ触る意味ある？",
+      "発言稼ぎに見える。",
+      "無難すぎる。",
+      "立ち位置曖昧。",
+      "庇い方が雑。",
       "論点ずらしてない？",
-      "その庇い方怪しい。",
-      "立ち位置が曖昧すぎる。",
       "一貫性なく見える。",
-      "様子見に逃げてる印象。",
-      "無難すぎて逆に怪しい。",
-      "その発言、色落ちしない。",
+      "色落ちしない発言。",
+      "様子見に逃げてる。",
+      "ちょっと怪しい。",
     ];
 
-    const heavyReplies = [
-      "正直かなり黒寄り。",
-      "もうロックして見てる。",
-      "吊り候補に上げたい。",
-      "その動き人外っぽい。",
-      "擁護が露骨すぎ。",
-      "視点漏れしてない？",
-      "村利に全く見えない。",
+    const heavy = [
+      "正直かなり黒い。",
+      "ここロック。",
+      "吊り候補筆頭。",
+      "人外ムーブ。",
+      "擁護が露骨。",
+      "視点漏れっぽい。",
+      "村利に見えない。",
+      "もう白見てない。",
+      "その言い訳苦しい。",
+      "残したくない位置。",
       "今日落としてもいい。",
-      "その言い訳苦しくない？",
-      "もう白要素拾えない。",
-      "黒塗りじゃなく事実指摘。",
-      "その発言で印象かなり落ちた。",
+      "終盤残ると負ける。",
     ];
 
-    const controlReplies = [
-      "今日は情報整理優先。",
-      "決め打つにはまだ早い。",
-      "無理に動く場面じゃない。",
-      "一旦グレー詰めたい。",
-      "今日は保留が安定。",
-      "盤面見直そう。",
-      "焦って吊る必要ない。",
-    ];
-
-    const randomChaos = [
-      "逆にここ白なら村きつい。",
-      "ここ狼なら相当強い位置。",
+    const chaos = [
+      "ここ狼なら強い。",
       "最終日まで残りそう。",
-      "SGにされやすそう。",
-      "噛まれなさそうな発言。",
-      "この人残されそうだな。",
-      "終盤で揉めそう。",
+      "SGにされそう。",
+      "噛まれなさそう。",
+      "盤面荒らしそう。",
+      "終盤で揉める位置。",
     ];
 
-    let pool = lightReplies;
-    if (user.suspicion > 1.2) pool = heavyReplies;
-    else if (user.suspicion > 0.75) pool = suspiciousReplies;
-
-    if (Math.random() < 0.2) pool = controlReplies;
-    if (Math.random() < 0.12) pool = randomChaos;
+    let pool = light;
+    if (user.suspicion > 1.2) pool = heavy;
+    else if (user.suspicion > 0.75) pool = suspicious;
+    if (Math.random() < 0.15) pool = chaos;
 
     message.reply(
       pool[Math.floor(Math.random() * pool.length)]
